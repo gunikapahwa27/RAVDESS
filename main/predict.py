@@ -1,12 +1,13 @@
 import sys
+import os
 import numpy as np
 import librosa
-from tensorflow.keras.models import load_model
+import tensorflow as tf
 
 
-# =============================
-# CONSTANTS (Same as Training)
-# =============================
+# =====================
+# Constants (same as training)
+# =====================
 
 SAMPLE_RATE = 22050
 DURATION = 3
@@ -25,95 +26,89 @@ EMOTION_MAP = {
 }
 
 
-# =============================
-# LOAD TRAINED MODEL
-# =============================
-
-MODEL_PATH = "ser_cnn_model.h5"
-
-try:
-    model = load_model(MODEL_PATH)
-except:
-    print("❌ Error: Model file not found!")
-    print("Make sure 'ser_cnn_model.h5' is in the same folder.")
-    sys.exit(1)
-
-
-# =============================
-# PREPROCESSING FUNCTIONS
-# =============================
+# =====================
+# Preprocessing (same as training)
+# =====================
 
 def trim_silence(audio):
-    trimmed, _ = librosa.effects.trim(audio, top_db=20)
-    return trimmed
+    trimmed_audio, _ = librosa.effects.trim(audio, top_db=20)
+    return trimmed_audio
 
 
 def extract_log_mel(audio, sr):
 
-    mel = librosa.feature.melspectrogram(
+    mel_spec = librosa.feature.melspectrogram(
         y=audio,
         sr=sr,
         n_mels=N_MELS
     )
 
-    log_mel = librosa.power_to_db(mel, ref=np.max)
+    log_mel = librosa.power_to_db(mel_spec, ref=np.max)
 
-    # Pad or trim
+    # Pad / truncate
     if log_mel.shape[1] < MAX_FRAMES:
-        pad = MAX_FRAMES - log_mel.shape[1]
-        log_mel = np.pad(log_mel, ((0, 0), (0, pad)))
+        pad_width = MAX_FRAMES - log_mel.shape[1]
+        log_mel = np.pad(log_mel, ((0, 0), (0, pad_width)))
     else:
         log_mel = log_mel[:, :MAX_FRAMES]
 
     return log_mel
 
 
-# =============================
-# PREDICTION FUNCTION
-# =============================
+# =====================
+# Load Model
+# =====================
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "ser_cnn_model.h5")
+
+model = tf.keras.models.load_model(MODEL_PATH)
+
+
+# =====================
+# Prediction Function
+# =====================
 
 def predict_emotion(file_path):
 
-    # Load audio
     audio, sr = librosa.load(
         file_path,
         sr=SAMPLE_RATE,
         duration=DURATION
     )
 
-    # Remove silence
     audio = trim_silence(audio)
 
-    # Extract features
     mel = extract_log_mel(audio, sr)
 
-    # Reshape for CNN
     mel = mel[np.newaxis, ..., np.newaxis]
 
-    # Predict
     prediction = model.predict(mel)[0]
 
-    # Get emotion
-    idx = np.argmax(prediction) + 1
-    emotion = EMOTION_MAP[str(idx).zfill(2)]
+    index = np.argmax(prediction)
+
+    emotion_code = str(index + 1).zfill(2)
+
+    emotion = EMOTION_MAP[emotion_code]
 
     confidence = np.max(prediction) * 100
 
-    print(f"\n🎯 Predicted Emotion: {emotion}")
-    print(f"📊 Confidence: {confidence:.2f}%\n")
+    return emotion, confidence
 
 
-# =============================
-# ONE-LINE EXECUTION
-# =============================
+# =====================
+# Main (Command Line Part)
+# =====================
 
 if __name__ == "__main__":
 
-    if len(sys.argv) != 2:
-        print("\nUsage:")
-        print("  python predict.py audio.wav\n")
+    if len(sys.argv) < 2:
+        print("Usage: python predict.py <audio_file.wav>")
         sys.exit(1)
 
     audio_file = sys.argv[1]
 
-    predict_emotion(audio_file)
+    emotion, confidence = predict_emotion(audio_file)
+
+    print(f"Predicted Emotion: {emotion}")
+    print(f"Confidence: {confidence:.2f}%")
