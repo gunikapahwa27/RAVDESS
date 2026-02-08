@@ -1,0 +1,7 @@
+numpy
+tensorflow
+librosa
+scikit-learn
+matplotlib
+seaborn
+kagglehub
