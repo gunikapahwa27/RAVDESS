@@ -4,11 +4,6 @@ import numpy as np
 import librosa
 import tensorflow as tf
 
-
-# =====================
-# Constants (same as training)
-# =====================
-
 SAMPLE_RATE = 22050
 DURATION = 3
 N_MELS = 128
@@ -26,15 +21,10 @@ EMOTION_MAP = {
 }
 
 
-# =====================
-# Preprocessing (same as training)
-# =====================
 
 def trim_silence(audio):
     trimmed_audio, _ = librosa.effects.trim(audio, top_db=20)
     return trimmed_audio
-
-
 def extract_log_mel(audio, sr):
 
     mel_spec = librosa.feature.melspectrogram(
@@ -55,19 +45,12 @@ def extract_log_mel(audio, sr):
     return log_mel
 
 
-# =====================
-# Load Model
-# =====================
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "ser_cnn_model.h5")
 
 model = tf.keras.models.load_model(MODEL_PATH)
 
-
-# =====================
-# Prediction Function
-# =====================
 
 def predict_emotion(file_path):
 
@@ -96,9 +79,6 @@ def predict_emotion(file_path):
     return emotion, confidence
 
 
-# =====================
-# Main (Command Line Part)
-# =====================
 
 if __name__ == "__main__":
 
