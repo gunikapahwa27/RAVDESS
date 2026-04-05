@@ -1,6 +1,5 @@
 #### RAVDESS_AI
-#### Gunika Pahwa
-#### 2025B2PS0918P
+
 #### Augmentation : Noise, Pitch Shift, Time Stretch 
 #### Optimizer : Adam
 #### Test Accuracy: 0.796954333782196
